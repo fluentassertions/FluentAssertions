@@ -33,39 +33,39 @@ public class EnumerableValueFormatter : IValueFormatter
 
         using var iterator = new Iterator<object>(collection, MaxItems);
 
-        var iteratorGraph = formattedGraph.KeepOnSingleLineAsLongAsPossible();
-        FormattedObjectGraph.PossibleMultilineFragment separatingCommaGraph = null;
+        var startingAnchor = formattedGraph.GetAnchor();
+        Anchor commaSeparatorAnchor = null;
 
         while (iterator.MoveNext())
         {
             if (!iterator.HasReachedMaxItems)
             {
                 formatChild(iterator.Index.ToString(CultureInfo.InvariantCulture), iterator.Current, formattedGraph);
+
+                commaSeparatorAnchor?.AddLineOrFragment(", ");
+                commaSeparatorAnchor = formattedGraph.GetAnchor();
             }
             else
             {
                 using IDisposable _ = formattedGraph.WithIndentation();
                 string moreItemsMessage = value is ICollection c ? $"…{c.Count - MaxItems} more…" : "…more…";
-                iteratorGraph.AddLineOrFragment(moreItemsMessage);
+                formattedGraph.AddLineOrFragment(moreItemsMessage);
             }
 
-            separatingCommaGraph?.InsertLineOrFragment(", ");
-            separatingCommaGraph = formattedGraph.KeepOnSingleLineAsLongAsPossible();
-
-            // We cannot know whether or not the enumerable will take up more than one line of
-            // output until we have formatted the first item. So we format the first item, then
+            // We cannot know whether the enumerable will take up more than one line of
+            // output until we have formatted all items. So we format items, then
             // go back and insert the enumerable's opening brace in the correct place depending
             // on whether that first item was all on one line or not.
             if (iterator.IsLast)
             {
-                iteratorGraph.AddStartingLineOrFragment("{");
-                iteratorGraph.AddLineOrFragment("}");
+                startingAnchor.InsertLineOrFragment("{");
+                formattedGraph.AddLineOrFragment("}");
             }
         }
 
         if (iterator.IsEmpty)
         {
-            iteratorGraph.AddFragment("{empty}");
+            formattedGraph.AddFragment("{empty}");
         }
     }
 }

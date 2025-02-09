@@ -12,7 +12,7 @@ using Xunit.Sdk;
 namespace FluentAssertions.Specs.Formatting;
 
 [Collection("FormatterSpecs")]
-public sealed class FormatterSpecs : IDisposable
+public class FormatterSpecs : IDisposable
 {
     [Fact]
     public void When_value_contains_cyclic_reference_it_should_create_descriptive_error_message()
@@ -175,13 +175,13 @@ public sealed class FormatterSpecs : IDisposable
             {
                 StuffId = 1,
                 Description = "Stuff_1",
-                Children = [1, 2, 3, 4]
+                Children = new List<int> { 1, 2, 3, 4 }
             },
             new()
             {
                 StuffId = 2,
                 Description = "Stuff_2",
-                Children = [1, 2, 3, 4]
+                Children = new List<int> { 1, 2, 3, 4 }
             }
         };
 
@@ -913,7 +913,7 @@ public sealed class FormatterSpecs : IDisposable
         string result = Formatter.ToString(subject, new FormattingOptions { UseLineBreaks = true });
 
         // Assert
-        result.Should().Contain($"FluentAssertions.Specs.Formatting.FormatterSpecs+A, {Environment.NewLine}");
+        result.Should().Contain($"FluentAssertions.Specs.Formatting.FormatterSpecs+A,{Environment.NewLine}");
         result.Should().Contain($"FluentAssertions.Specs.Formatting.FormatterSpecs+B{Environment.NewLine}");
     }
 
@@ -1028,6 +1028,58 @@ public sealed class FormatterSpecs : IDisposable
         }
 
         public void Dispose() => Formatter.RemoveFormatter(formatter);
+    }
+
+    [Fact]
+    public void Array_of_arrays_of_toStringable_objects()
+    {
+        var sigmets = new Point[][]
+        {
+            [new Point("0,0")],
+            [new Point("1,0")],
+        };
+
+        var result = Formatter.ToString(sigmets, new() { UseLineBreaks = true });
+        result.Should().Be(
+            """
+            {
+                {P0,0},
+                {P1,0}
+            }
+            """);
+    }
+
+    [Fact]
+    public void Can_format_an_enumerable_using_line_breaks()
+    {
+        Point[] sigmets = [new Point("0,0"), new Point("1,0")];
+
+        var result = Formatter.ToString(sigmets, new() { UseLineBreaks = true });
+        result.Should().Be(
+            """
+            {
+                P0,0,
+                P1,0
+            }
+            """);
+    }
+
+    [Fact]
+    public void Can_format_an_enumerable_without_line_breaks()
+    {
+        // Arrange
+        Point[] sigmets = [new Point("0,0"), new Point("1,0")];
+
+        // Act
+        var result = Formatter.ToString(sigmets, new() { UseLineBreaks = false });
+
+        // Assert
+        result.Should().Be("{P0,0, P1,0}");
+    }
+
+    private class Point(string name)
+    {
+        public override string ToString() => "P" + name;
     }
 
     public void Dispose() => AssertionEngine.ResetToDefaults();
