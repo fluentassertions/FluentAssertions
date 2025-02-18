@@ -42,7 +42,7 @@ public class Node : INode
         }
     }
 
-    public virtual string Description => $"{GetSubjectId().Combine(PathAndName)}";
+    public virtual string Description => $"{GetSubjectId().Combine(PathAndName).EscapePlaceholders()}";
 
     public bool IsRoot
     {
